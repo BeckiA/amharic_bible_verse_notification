@@ -50,8 +50,8 @@ class NotificationService {
       'Daily Verse Notifications',
       channelDescription: 'Receive a daily Bible verse notification',
       importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
+      priority: Priority.max,
+      showWhen: true,
     );
 
     const NotificationDetails platformChannelSpecifics =
@@ -63,8 +63,8 @@ class NotificationService {
       now.year,
       now.month,
       now.day,
-      8, // hour (8 AM in 24-hour format)
-      19, // minute
+      15, // hour (8 AM in 24-hour format)
+      48, // minute
     );
     // print('Scheduled date: $scheduledDate');
     print('Current date: $now');
@@ -114,21 +114,5 @@ class NotificationService {
     final pending =
         await flutterLocalNotificationsPlugin.pendingNotificationRequests();
     return pending.any((notification) => notification.id == 0);
-  }
-
-  Future<void> showTestNotification() async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'test_channel',
-      'Test Notifications',
-      importance: Importance.max,
-    );
-
-    await flutterLocalNotificationsPlugin.show(
-      999, // Different ID for test
-      'Test Notification',
-      'This is a test notification',
-      const NotificationDetails(android: androidDetails),
-    );
   }
 }
