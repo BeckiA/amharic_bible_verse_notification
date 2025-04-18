@@ -63,8 +63,8 @@ class NotificationService {
       now.year,
       now.month,
       now.day,
-      15, // hour (8 AM in 24-hour format)
-      48, // minute
+      17, // hour (8 AM in 24-hour format)
+      45, // minute
     );
     // print('Scheduled date: $scheduledDate');
     print('Current date: $now');
