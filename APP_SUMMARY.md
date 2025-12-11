@@ -1,0 +1,412 @@
+# Amharic Bible Verse Notification App - Detailed Summary
+
+## 📱 **App Overview**
+
+This is a **Flutter mobile application** that displays random Amharic Bible verses and sends daily push notifications with Bible verses at 5:45 PM local time. The app is designed for Android and iOS platforms.
+
+---
+
+## 🎯 **What the App Does**
+
+1. **Random Verse Selection**: On app launch, randomly selects a Bible verse from the Amharic Bible JSON database
+2. **Verse Display**: Shows the selected verse on the home screen with the format: `[Book Title] [Chapter]:[Verse]`
+3. **Daily Notifications**: Schedules a recurring daily notification at **5:45 PM (17:45)** with the selected verse
+4. **Notification Testing**: Includes a test button to manually trigger notification scheduling
+
+---
+
+## 📁 **Project Structure**
+
+```
+amharic_bible_verse_notification/
+├── lib/
+│   ├── main.dart                          # App entry point
+│   ├── screens/
+│   │   └── home_page.dart                 # Main UI screen
+│   └── service/
+│       └── notification_service.dart      # ⭐ Core notification logic
+├── assets/
+│   ├── amharic_bible.json                 # Bible verse database (large JSON file)
+│   └── images/                            # App icons and logos
+├── android/                               # Android-specific configurations
+│   └── app/src/main/
+│       └── AndroidManifest.xml            # ⭐ Android permissions & receivers
+├── ios/                                   # iOS-specific configurations
+└── pubspec.yaml                           # ⭐ Dependencies configuration
+```
+
+---
+
+## 🔑 **Core Functionalities & Locations**
+
+### **1. Notification Service** ⭐ (Main Component to Extract)
+
+**File:** `lib/service/notification_service.dart`
+
+**Class:** `NotificationService` (Singleton Pattern)
+
+**Key Methods:**
+
+| Method | Purpose |
+|--------|---------|
+| `init()` | Initializes the Flutter Local Notifications plugin with Android settings |
+| `scheduleDailyNotification([String verse])` | Schedules a daily notification at 5:45 PM with optional verse text |
+| `_checkExactAlarmPermission()` | Checks and requests exact alarm permission (required for Android 12+) |
+| `checkNotificationScheduled()` | Verifies if notification with ID 0 is already scheduled |
+
+**Key Features:**
+- Uses `flutter_local_notifications` plugin
+- Implements exact alarm scheduling (Android 12+) with fallback to inexact
+- Timezone-aware scheduling using `timezone` package
+- Notification ID: `0` (single recurring notification)
+- Channel ID: `'daily_verse_channel_id'`
+- Notification time: **17:45 (5:45 PM)** daily
+- Automatically reschedules if scheduled time has passed
+
+**Notification Configuration:**
+```dart
+Channel ID: 'daily_verse_channel_id'
+Channel Name: 'Daily Verse Notifications'
+Channel Description: 'Receive a daily Bible verse notification'
+Importance: max
+Priority: max
+Show When: true
+```
+
+---
+
+### **2. Verse Loading & Display**
+
+**File:** `lib/screens/home_page.dart`
+
+**Class:** `HomeScreen` (StatefulWidget)
+
+**Key Methods:**
+
+| Method | Purpose |
+|--------|---------|
+| `_initializeServices()` | Initializes notification service and loads verse on app start |
+| `loadVerse()` | Reads JSON file, randomly selects book/chapter/verse, and schedules notification |
+
+**Verse Selection Logic:**
+1. Loads `assets/amharic_bible.json`
+2. Parses JSON structure: `books → chapters → verses`
+3. Randomly selects:
+   - A book from all available books
+   - A chapter from the selected book
+   - A verse from the selected chapter
+4. Formats as: `"[Book Title] [Chapter]:[Verse]"`
+5. Displays on UI and schedules notification with the verse
+
+**UI Components:**
+- AppBar with title: "Amharic Verse of the Day"
+- Verse text display (centered, bold, 20px font)
+- "Test Notification" button for manual testing
+
+---
+
+### **3. App Initialization**
+
+**File:** `lib/main.dart`
+
+**Key Responsibilities:**
+- Initializes Flutter bindings
+- Initializes timezone data (`tz.initializeTimeZones()`)
+- Initializes NotificationService before app launch
+- Sets up MaterialApp with theme
+- Routes to `HomeScreen`
+
+**Critical Initialization Order:**
+```dart
+1. WidgetsFlutterBinding.ensureInitialized()
+2. tz.initializeTimeZones()
+3. await NotificationService().init()
+4. runApp(MyApp())
+```
+
+---
+
+### **4. Android Configuration** ⭐
+
+**File:** `android/app/src/main/AndroidManifest.xml`
+
+**Required Permissions:**
+```xml
+<!-- Notification permissions -->
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.VIBRATE"/>
+<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+<uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+```
+
+**Notification Receivers (Auto-generated by plugin):**
+```xml
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"/>
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+    <!-- Reschedules notifications after device reboot -->
+</receiver>
+```
+
+**Purpose of Each Permission:**
+- `RECEIVE_BOOT_COMPLETED`: Reschedule notifications after device restart
+- `VIBRATE`: Enable notification vibration
+- `USE_FULL_SCREEN_INTENT`: Allow full-screen notifications
+- `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM`: Exact alarm scheduling (Android 12+)
+- `POST_NOTIFICATIONS`: Post notifications (Android 13+)
+- `FOREGROUND_SERVICE`: Run foreground services (if needed)
+
+---
+
+### **5. Dependencies** ⭐
+
+**File:** `pubspec.yaml`
+
+**Required Packages:**
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `flutter_local_notifications` | ^19.0.0 | Core notification scheduling and display |
+| `permission_handler` | ^11.4.0 | Request runtime permissions (exact alarms) |
+| `timezone` | ^0.10.0 | Timezone-aware date/time handling |
+| `intl` | ^0.20.2 | Internationalization support |
+
+**Asset Declarations:**
+```yaml
+assets:
+  - assets/amharic_bible.json
+  - assets/images/
+```
+
+---
+
+## 📦 **Data Structure**
+
+### **Bible JSON Format** (`assets/amharic_bible.json`)
+
+```json
+{
+  "books": [
+    {
+      "title": "[Book Name]",
+      "chapters": [
+        {
+          "chapter": [chapter_number],
+          "verses": [
+            "[verse_text_1]",
+            "[verse_text_2]",
+            ...
+          ]
+        },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
+
+**Example verse format:** `"[Book Title] [Chapter]:[Verse Text]"`
+
+---
+
+## 🔄 **App Flow**
+
+```
+1. App Launch (main.dart)
+   ↓
+2. Initialize timezone data
+   ↓
+3. Initialize NotificationService
+   ↓
+4. Navigate to HomeScreen
+   ↓
+5. Load random verse from JSON (home_page.dart)
+   ↓
+6. Display verse on screen
+   ↓
+7. Schedule daily notification at 5:45 PM
+   ↓
+8. Notification triggers daily (even when app is closed)
+```
+
+---
+
+## 📋 **Migration Guide: Extracting Notification Functionality**
+
+To move the notification functionality to another Flutter app, follow these steps:
+
+### **Step 1: Copy Core Files**
+
+1. **Copy `lib/service/notification_service.dart`** to your new app's `lib/service/` directory
+2. Keep the entire `NotificationService` class as-is (it's self-contained)
+
+### **Step 2: Update Dependencies**
+
+Add to your new app's `pubspec.yaml`:
+```yaml
+dependencies:
+  flutter_local_notifications: ^19.0.0
+  permission_handler: ^11.4.0
+  timezone: ^0.10.0
+```
+
+Then run:
+```bash
+flutter pub get
+```
+
+### **Step 3: Update Android Manifest**
+
+Add these permissions to `android/app/src/main/AndroidManifest.xml` (inside `<manifest>` tag):
+```xml
+<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+<uses-permission android:name="android.permission.VIBRATE"/>
+<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+<uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+```
+
+Add these receivers (inside `<application>` tag):
+```xml
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"/>
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+<receiver android:exported="false" 
+          android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+    <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED"/>
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+        <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+    </intent-filter>
+</receiver>
+```
+
+### **Step 4: Initialize in Your New App**
+
+In your new app's `main.dart`, add:
+
+```dart
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:your_app/service/notification_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  tz.initializeTimeZones();
+  await NotificationService().init();
+  runApp(const MyApp());
+}
+```
+
+### **Step 5: Use Notification Service**
+
+In any widget where you want to schedule notifications:
+
+```dart
+import 'package:your_app/service/notification_service.dart';
+
+// Schedule daily notification
+await NotificationService().scheduleDailyNotification("Your notification text");
+
+// Check if notification is scheduled
+bool isScheduled = await NotificationService().checkNotificationScheduled();
+```
+
+### **Step 6: Customize (Optional)**
+
+**Change notification time:**
+Edit `scheduleDailyNotification()` in `notification_service.dart`, line 66-67:
+```dart
+17, // hour (change this)
+45, // minute (change this)
+```
+
+**Change channel details:**
+Edit lines 49-51 in `notification_service.dart`:
+```dart
+'daily_verse_channel_id',      // Channel ID
+'Daily Verse Notifications',    // Channel Name
+'Receive a daily Bible verse notification',  // Description
+```
+
+**Change notification ID:**
+Edit line 81 in `notification_service.dart` (and line 116 in `checkNotificationScheduled()`):
+```dart
+0,  // Change to unique ID if scheduling multiple notifications
+```
+
+**Change notification icon:**
+Edit line 21 in `notification_service.dart`:
+```dart
+AndroidInitializationSettings('@mipmap/ic_launcher')  // Change to your icon
+```
+
+### **Step 7: iOS Configuration (if needed)**
+
+For iOS, you may need to add notification permissions in `ios/Runner/Info.plist`:
+```xml
+<key>UIBackgroundModes</key>
+<array>
+    <string>remote-notification</string>
+</array>
+```
+
+---
+
+## ⚠️ **Important Notes**
+
+1. **Timezone Initialization**: Must be initialized before using `NotificationService`
+2. **Permission Handling**: Android 12+ requires exact alarm permission (handled automatically)
+3. **Notification ID**: The app uses ID `0` - ensure uniqueness if scheduling multiple notifications
+4. **Duplicate Initialization**: Timezone is initialized in both `main.dart` and `notification_service.dart` (redundant but harmless)
+5. **Boot Receiver**: Notifications are automatically rescheduled after device restart
+6. **Scheduling Logic**: If scheduled time has passed, automatically schedules for next day
+7. **Fallback Mode**: Falls back to inexact alarms if exact alarm permission is denied
+
+---
+
+## 🧪 **Testing**
+
+The app includes a "Test Notification" button that manually triggers notification scheduling. For testing:
+- Tap the button to schedule notification immediately
+- Check console logs for scheduling status
+- Verify notification appears at scheduled time (or immediately if scheduled for current time)
+
+---
+
+## 📝 **Future Improvements (from todo.txt)**
+
+- [ ] Work on shuffling verses (High Priority)
+- [ ] Create a functional Bible verse app
+- [ ] Implement actions for opening verses
+
+---
+
+## 🎯 **Summary of Files to Extract**
+
+**Essential Files:**
+1. ✅ `lib/service/notification_service.dart` - Complete notification logic
+2. ✅ `pubspec.yaml` dependencies - Required packages
+3. ✅ `android/app/src/main/AndroidManifest.xml` - Permissions & receivers
+4. ✅ Initialization code from `lib/main.dart` - Timezone & service init
+
+**Optional Files (for full functionality):**
+- `assets/amharic_bible.json` - If you want verse database
+- `assets/images/*` - If you want app icons
+- `lib/screens/home_page.dart` - If you want the UI example
+
+---
+
+**Created:** Complete app analysis and migration guide  
+**Last Updated:** Based on current codebase structure
+
